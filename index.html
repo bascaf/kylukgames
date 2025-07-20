@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>КЗ "Юрівка Забава"</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@400;500;700&display=swap');
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #0a0e17;
+            color: #e0e0e0;
+            overflow-x: hidden;
+        }
+        
+        .logo-font {
+            font-family: 'Playfair Display', serif;
+        }
+        
+        .slot-machine {
+            background: linear-gradient(135deg, #1a2a3a 0%, #0a0e17 100%);
+            border: 2px solid #2d4b6e;
+            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(0, 100, 255, 0.2);
+        }
+        
+        .slot-reel {
+            background: linear-gradient(180deg, #1e3a5f 0%, #0f1a2a 100%);
+            border: 1px solid #2d4b6e;
+            border-radius: 8px;
+            perspective: 1000px;
+        }
+        
+        .slot-symbol {
+            width: 100%;
+            height: 100px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 40px;
+            transform-style: preserve-3d;
+            transition: transform 0.1s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #d4af37 0%, #f9d423 100%);
+            color: #1a1a1a;
+            font-weight: 700;
+            border: none;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(212, 175, 55, 0.4);
+        }
+        
+        .btn-primary:disabled {
+            background: #555;
+            color: #999;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #2d4b6e 0%, #1a2a3a 100%);
+            color: #e0e0e0;
+            border: 1px solid #3a5a80;
+        }
+        
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #3a5a80 0%, #2d4b6e 100%);
+        }
+        
+        .ukraine-pattern {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="60" viewBox="0 0 100 60"><rect width="100" height="30" fill="%230055BA"/><rect y="30" width="100" height="30" fill="%23FFD700"/></svg>');
+            background-size: 100px 60px;
+            opacity: 0.05;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: -1;
+        }
+        
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: linear-gradient(135deg, #1a2a3a 0%, #0a0e17 100%);
+            border: 1px solid #2d4b6e;
+            border-radius: 10px;
+            padding: 20px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotateX(0); }
+            100% { transform: rotateX(360deg); }
+        }
+        
+        .win-animation {
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 5px rgba(212, 175, 55, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(212, 175, 55, 0.9); }
+            100% { box-shadow: 0 0 5px rgba(212, 175, 55, 0.5); }
+        }
+        
+        .history-item {
+            border-left: 3px solid #d4af37;
+            transition: all 0.3s;
+        }
+        
+        .history-item:hover {
+            background: rgba(45, 75, 110, 0.3);
+        }
+        
+        .win-item {
+            border-left: 3px solid #4CAF50;
+        }
+        
+        .loss-item {
+            border-left: 3px solid #F44336;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .slot-symbol {
+                height: 60px;
+                font-size: 24px;
+            }
+            
+            .game-controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .balance-section {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="ukraine-pattern"></div>
+    
+    <!-- Header -->
+    <header class="bg-gray-900 bg-opacity-90 border-b border-gray-800 py-4 px-6 sticky top-0 z-50">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <div class="text-yellow-400 text-3xl">
+                    <i class="fas fa-coins"></i>
+                </div>
+                <h1 class="logo-font text-2xl md:text-3xl text-white">
+                    КЗ <span class="text-yellow-400">"Юрівка Забава"</span>
+                </h1>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <button id="soundToggle" class="text-gray-300 hover:text-white text-xl">
+                    <i class="fas fa-volume-up"></i>
+                </button>
+                <button id="rulesBtn" class="text-gray-300 hover:text-white">
+                    <i class="fas fa-info-circle mr-1"></i> Правила
+                </button>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <div class="flex flex-col lg:flex-row gap-8">
+            <!-- Left Column - Balance and Controls -->
+            <div class="w-full lg:w-1/4 space-y-6">
+                <!-- Balance Section -->
+                <div class="bg-gray-800 bg-opacity-70 rounded-lg p-6 shadow-lg">
+                    <h2 class="text-xl font-bold mb-4 text-yellow-400 flex items-center">
+                        <i class="fas fa-wallet mr-2"></i> Ваш баланс
+                    </h2>
+                    
+                    <div class="balance-section flex items-center justify-between mb-6">
+                        <div>
+                            <p class="text-gray-400">Фішки</p>
+                            <p id="balance" class="text-3xl font-bold">1000</p>
+                        </div>
+                        <div class="text-yellow-400 text-4xl">
+                            <i class="fas fa-coins"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <button id="depositBtn" class="btn-primary w-full py-3 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-plus-circle mr-2"></i> Поповнити
+                        </button>
+                        
+                        <button id="withdrawBtn" class="btn-secondary w-full py-3 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-money-bill-wave mr-2"></i> Вивести
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Bet Controls -->
+                <div class="bg-gray-800 bg-opacity-70 rounded-lg p-6 shadow-lg">
+                    <h2 class="text-xl font-bold mb-4 text-yellow-400 flex items-center">
+                        <i class="fas fa-sliders-h mr-2"></i> Ставка
+                    </h2>
+                    
+                    <div class="flex items-center justify-between mb-4">
+                        <button id="decreaseBet" class="bg-gray-700 hover:bg-gray-600 text-white w-10 h-10 rounded-full flex items-center justify-center">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        
+                        <div class="text-center">
+                            <p class="text-gray-400">Поточна ставка</p>
+                            <p id="currentBet" class="text-2xl font-bold">10</p>
+                        </div>
+                        
+                        <button id="increaseBet" class="bg-gray-700 hover:bg-gray-600 text-white w-10 h-10 rounded-full flex items-center justify-center">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="grid grid-cols-3 gap-2 mb-4">
+                        <button class="bet-amount bg-gray-700 hover:bg-gray-600 py-2 rounded" data-amount="10">10</button>
+                        <button class="bet-amount bg-gray-700 hover:bg-gray-600 py-2 rounded" data-amount="50">50</button>
+                        <button class="bet-amount bg-gray-700 hover:bg-gray-600 py-2 rounded" data-amount="100">100</button>
+                        <button class="bet-amount bg-gray-700 hover:bg-gray-600 py-2 rounded" data-amount="200">200</button>
+                        <button class="bet-amount bg-gray-700 hover:bg-gray-600 py-2 rounded" data-amount="500">500</button>
+                        <button class="bet-amount bg-gray-700 hover:bg-gray-600 py-2 rounded" data-amount="1000">1000</button>
+                    </div>
+                </div>
+                
+                <!-- Game History -->
+                <div class="bg-gray-800 bg-opacity-70 rounded-lg p-6 shadow-lg">
+                    <h2 class="text-xl font-bold mb-4 text-yellow-400 flex items-center">
+                        <i class="fas fa-history mr-2"></i> Історія ставок
+                    </h2>
+                    
+                    <div id="gameHistory" class="space-y-2 max-h-60 overflow-y-auto pr-2">
+                        <!-- History items will be added here -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Column - Slot Machine -->
+            <div class="w-full lg:w-3/4">
+                <div class="slot-machine rounded-lg p-6 mb-8">
+                    <!-- Slot Machine Display -->
+                    <div class="flex justify-between mb-8">
+                        <div>
+                            <p class="text-gray-400">Ставка</p>
+                            <p id="displayBet" class="text-xl font-bold">10</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-gray-400">Виграш</p>
+                            <p id="lastWin" class="text-xl font-bold">0</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Slot Reels -->
+                    <div class="grid grid-cols-5 gap-2 mb-8">
+                        <div class="slot-reel overflow-hidden rounded-lg" id="reel1">
+                            <div class="slot-symbol" data-symbol="🌽">🌽</div>
+                        </div>
+                        <div class="slot-reel overflow-hidden rounded-lg" id="reel2">
+                            <div class="slot-symbol" data-symbol="🏚️">🏚️</div>
+                        </div>
+                        <div class="slot-reel overflow-hidden rounded-lg" id="reel3">
+                            <div class="slot-symbol" data-symbol="👔">👔</div>
+                        </div>
+                        <div class="slot-reel overflow-hidden rounded-lg" id="reel4">
+                            <div class="slot-symbol" data-symbol="👵">👵</div>
+                        </div>
+                        <div class="slot-reel overflow-hidden rounded-lg" id="reel5">
+                            <div class="slot-symbol" data-symbol="🛑">🛑</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Game Controls -->
+                    <div class="game-controls flex justify-center space-x-4">
+                        <button id="autoSpinBtn" class="btn-secondary px-6 py-3 rounded-lg flex items-center">
+                            <i class="fas fa-redo mr-2"></i> Автоспін
+                        </button>
+                        <button id="spinBtn" class="btn-primary px-10 py-4 rounded-lg text-xl flex items-center">
+                            <i class="fas fa-play mr-2"></i> Крутити
+                        </button>
+                        <button id="maxBetBtn" class="btn-secondary px-6 py-3 rounded-lg flex items-center">
+                            <i class="fas fa-arrow-up mr-2"></i> Макс
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Paytable -->
+                <div class="bg-gray-800 bg-opacity-70 rounded-lg p-6 shadow-lg">
+                    <h2 class="text-xl font-bold mb-4 text-yellow-400">Таблиця виплат</h2>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                        <div class="text-center">
+                            <div class="bg-gray-700 p-3 rounded-lg mb-2">
+                                <span class="text-3xl">🌽</span>
+                            </div>
+                            <p>3x = 2x ставки</p>
+                            <p>4x = 5x ставки</p>
+                            <p>5x = 10x ставки</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="bg-gray-700 p-3 rounded-lg mb-2">
+                                <span class="text-3xl">🏚️</span>
+                            </div>
+                            <p>3x = 3x ставки</p>
+                            <p>4x = 8x ставки</p>
+                            <p>5x = 15x ставки</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="bg-gray-700 p-3 rounded-lg mb-2">
+                                <span class="text-3xl">👔</span>
+                            </div>
+                            <p>3x = 5x ставки</p>
+                            <p>4x = 12x ставки</p>
+                            <p>5x = 25x ставки</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="bg-gray-700 p-3 rounded-lg mb-2">
+                                <span class="text-3xl">👵</span>
+                            </div>
+                            <p>3x = 8x ставки</p>
+                            <p>4x = 20x ставки</p>
+                            <p>5x = 50x ставки</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="bg-gray-700 p-3 rounded-lg mb-2">
+                                <span class="text-3xl">🛑</span>
+                            </div>
+                            <p>3x = 15x ставки</p>
+                            <p>4x = 40x ставки</p>
+                            <p>5x = 100x ставки</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="bg-gray-900 border-t border-gray-800 py-6 px-6">
+        <div class="container mx-auto">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="text-gray-400 text-sm mb-4 md:mb-0">
+                    <p>© 2035 КЗ "Юрівка Забава". Усі права захищені.</p>
+                </div>
+                <div class="text-gray-400 text-sm">
+                    <p>Грайте відповідально. 18+.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Deposit Modal -->
+    <div id="depositModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-yellow-400">Поповнення балансу</h3>
+                <button id="closeDepositModal" class="text-gray-400 hover:text-white text-xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <button id="sellShedBtn" class="btn-primary w-full py-3 rounded-lg flex items-center justify-between px-6">
+                    <span>Продати сарай Родіона</span>
+                    <span class="font-bold">+1000 фішок</span>
+                </button>
+                
+                <div id="depositTimer" class="text-center text-gray-400 hidden">
+                    <p>Доступно через: <span id="timerDisplay">10:00</span></p>
+                </div>
+            </div>
+        </div>
+</div>
+    
+    <!-- Withdraw Modal -->
+    <div id="withdrawModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-yellow-400">Виведення коштів</h3>
+                <button id="closeWithdrawModal" class="text-gray-400 hover:text-white text-xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <div class="mb-4">
+                    <label for="withdrawAmount" class="block text-gray-400 mb-2">Сума виведення</label>
+                    <input type="number" id="withdrawAmount" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2" placeholder="Введіть суму">
+                </div>
+                
+                <button id="deputyTransferBtn" class="btn-secondary w-full py-3 rounded-lg flex items-center justify-between px-6">
+                    <span>Переслати гроші в кишеню депутату</span>
+                    <i class="fas fa-hand-holding-usd"></i>
+                </button>
+                
+                <button id="lilaDonationBtn" class="btn-secondary w-full py-3 rounded-lg flex items-center justify-between px-6">
+                    <span>Лілі на слуховий апарат</span>
+                    <i class="fas fa-hearing"></i>
+                </button>
+                
+                <button class="btn-secondary w-full py-3 rounded-lg flex items-center justify-between px-6 opacity-50 cursor-not-allowed">
+                    <span>На відновлення доріг у Юрівці</span>
+                    <span class="text-xs">Тимчасово недоступно</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Rules Modal -->
+    <div id="rulesModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-yellow-400">Правила гри</h3>
+                <button id="closeRulesModal" class="text-gray-400 hover:text-white text-xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4 text-gray-300">
+                <p>Ласкаво просимо до КЗ "Юрівка Забава" - найчеснішого закладу у своєму роді!</p>
+                
+                <h4 class="font-bold text-yellow-400 mt-4">Як грати:</h4>
+                <ol class="list-decimal pl-5 space-y-2">
+                    <li>Оберіть бажану ставку за допомогою кнопок "+/-" або швидкого вибору</li>
+                    <li>Натисніть кнопку "Крутити" для запуску слот-машини</li>
+                    <li>Отримуйте виграші за комбінації символів згідно таблиці виплат</li>
+                </ol>
+                
+                <h4 class="font-bold text-yellow-400 mt-4">Поповнення балансу:</h4>
+                <p>Ви можете поповнити свій баланс один раз на 1000 фішок кожні 10 хвилин.</p>
+                
+                <h4 class="font-bold text-yellow-400 mt-4">Виведення коштів:</h4>
+                <p>Доступні два способи виведення коштів. Мінімальна сума виведення - 100 фішок.</p>
+                
+                <p class="italic mt-6 text-sm">Грайте відповідально. 18+. Азартні ігри можуть викликати залежність.</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-yellow-400" id="confirmTitle">Підтвердження</h3>
+                <button id="closeConfirmModal" class="text-gray-400 hover:text-white text-xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="mb-6">
+                <p id="confirmMessage">Ви впевнені, що хочете виконати цю дію?</p>
+            </div>
+            
+            <div class="flex justify-end space-x-4">
+                <button id="cancelConfirm" class="btn-secondary px-6 py-2 rounded-lg">
+                    Скасувати
+                </button>
+                <button id="confirmAction" class="btn-primary px-6 py-2 rounded-lg">
+                    Підтвердити
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Audio Elements -->
+    <audio id="spinSound" src="https://assets.mixkit.co/sfx/preview/mixkit-slot-machine-spin-1930.mp3" preload="auto"></audio>
+    <audio id="winSound" src="https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3" preload="auto"></audio>
+    <audio id="clickSound" src="https://assets.mixkit.co/sfx/preview/mixkit-select-click-1109.mp3" preload="auto"></audio>
+    
+    <script>
+        // Game State
+        let balance = 1000;
+        let currentBet = 10;
+        let isSpinning = false;
+        let autoSpin = false;
+        let autoSpinInterval;
+        let soundEnabled = true;
+        let depositCooldown = false;
+        let depositCooldownEnd = 0;
+        
+        // Symbols
+        const symbols = ['🌽', '🏚️', '👔', '👵', '🛑'];
+        const symbolValues = {
+            '🌽': [0, 0, 2, 5, 10],
+            '🏚️': [0, 0, 3, 8, 15],
+            '👔': [0, 0, 5, 12, 25],
+            '👵': [0, 0, 8, 20, 50],
+            '🛑': [0, 0, 15, 40, 100]
+        };
+        
+        // DOM Elements
+        const balanceElement = document.getElementById('balance');
+        const currentBetElement = document.getElementById('currentBet');
+        const displayBetElement = document.getElementById('displayBet');
+        const lastWinElement = document.getElementById('lastWin');
+        const spinBtn = document.getElementById('spinBtn');
+        const autoSpinBtn = document.getElementById('autoSpinBtn');
+        const maxBetBtn = document.getElementById('maxBetBtn');
+        const increaseBet = document.getElementById('increaseBet');
+        const decreaseBet = document.getElementById('decreaseBet');
+        const betAmounts = document.querySelectorAll('.bet-amount');
+        const depositBtn = document.getElementById('depositBtn');
+        const withdrawBtn = document.getElementById('withdrawBtn');
+        const sellShedBtn = document.getElementById('sellShedBtn');
+        const depositTimer = document.getElementById('depositTimer');
+        const timerDisplay = document.getElementById('timerDisplay');
+        const depositModal = document.getElementById('depositModal');
+        const withdrawModal = document.getElementById('withdrawModal');
+        const closeDepositModal = document.getElementById('closeDepositModal');
+        const closeWithdrawModal = document.getElementById('closeWithdrawModal');
+        const rulesBtn = document.getElementById('rulesBtn');
+        const rulesModal = document.getElementById('rulesModal');
+        const closeRulesModal = document.getElementById('closeRulesModal');
+        const confirmModal = document.getElementById('confirmModal');
+        const confirmTitle = document.getElementById('confirmTitle');
+        const confirmMessage = document.getElementById('confirmMessage');
+        const cancelConfirm = document.getElementById('cancelConfirm');
+        const confirmAction = document.getElementById('confirmAction');
+        const closeConfirmModal = document.getElementById('closeConfirmModal');
+        const withdrawAmount = document.getElementById('withdrawAmount');
+        const deputyTransferBtn = document.getElementById('deputyTransferBtn');
+        const lilaDonationBtn = document.getElementById('lilaDonationBtn');
+        const soundToggle = document.getElementById('soundToggle');
+        const gameHistory = document.getElementById('gameHistory');
+        const spinSound = document.getElementById('spinSound');
+        const winSound = document.getElementById('winSound');
+        const clickSound = document.getElementById('clickSound');
+        const reels = [
+            document.getElementById('reel1'),
+            document.getElementById('reel2'),
+            document.getElementById('reel3'),
+            document.getElementById('reel4'),
+            document.getElementById('reel5')
+        ];
+        
+        // Initialize the game
+        function initGame() {
+            updateBalance();
+            updateBetDisplay();
+            
+            // Check if deposit is on cooldown from previous session
+            const cooldownEnd = localStorage.getItem('depositCooldownEnd');
+            if (cooldownEnd && Date.now() < parseInt(cooldownEnd)) {
+                startDepositCooldown(parseInt(cooldownEnd) - Date.now());
+            }
+            
+            // Load game history from localStorage
+            const savedHistory = localStorage.getItem('gameHistory');
+            if (savedHistory) {
+                gameHistory.innerHTML = savedHistory;
+            }
+        }
+        
+        // Update balance display
+        function updateBalance() {
+            balanceElement.textContent = balance;
+        }
+        
+        // Update bet display
+        function updateBetDisplay() {
+            currentBetElement.textContent = currentBet;
+            displayBetElement.textContent = currentBet;
+        }
+        
+        // Play sound
+        function playSound(sound) {
+            if (soundEnabled) {
+                sound.currentTime = 0;
+                sound.play().catch(e => console.log("Sound play interrupted:", e));
+            }
+        }
+        
+        // Spin the slot machine
+        function spin() {
+            if (isSpinning || balance < currentBet) return;
+            
+            playSound(clickSound);
+            playSound(spinSound);
+            
+            isSpinning = true;
+            balance -= currentBet;
+            updateBalance();
+            
+            // Clear any win animation
+            reels.forEach(reel => {
+                reel.querySelector('.slot-symbol').classList.remove('win-animation');
+            });
+            
+            // Reset last win display
+            lastWinElement.textContent = '0';
+            
+            // Spin each reel with slight delay between them
+            const spinDuration = 2000;
+            const results = [];
+            
+            reels.forEach((reel, index) => {
+                setTimeout(() => {
+                    const symbolElement = reel.querySelector('.slot-symbol');
+                    
+                    // Add spinning animation
+                    symbolElement.style.animation = `spin ${spinDuration/1000}s linear`;
+                    
+                    // Determine result after spin
+                    setTimeout(() => {
+                        const randomSymbol = symbols[Math.floor(Math.random() * symbols.length)];
+                        results[index] = randomSymbol;
+                        
+                        // Stop animation and show result
+                        symbolElement.style.animation = '';
+                        symbolElement.textContent = randomSymbol;
+                        symbolElement.setAttribute('data-symbol', randomSymbol);
+                        
+                        // If this is the last reel, calculate win
+                        if (index === reels.length - 1) {
+                            setTimeout(() => calculateWin(results), 500);
+                        }
+                    }, spinDuration);
+                }, index * 200);
+            });
+        }
+        
+        // Calculate win based on results
+        function calculateWin(results) {
+            isSpinning = false;
+            
+            // Count symbol occurrences
+            const symbolCounts = {};
+            results.forEach(symbol => {
+                symbolCounts[symbol] = (symbolCounts[symbol] || 0) + 1;
+            });
+            
+            // Calculate win for each symbol
+            let totalWin = 0;
+            for (const symbol in symbolCounts) {
+                const count = symbolCounts[symbol];
+                if (count >= 3) {
+                    const winMultiplier = symbolValues[symbol][count - 1];
+                    totalWin += currentBet * winMultiplier;
+                }
+            }
+            
+            // Apply win
+            if (totalWin > 0) {
+                balance += totalWin;
+                updateBalance();
+                lastWinElement.textContent = totalWin;
+                playSound(winSound);
+                
+                // Highlight winning symbols
+                results.forEach((symbol, index) => {
+                    if (symbolCounts[symbol] >= 3) {
+                        reels[index].querySelector('.slot-symbol').classList.add('win-animation');
+                    }
+                });
+                
+                // Add to history
+                addToHistory(true, totalWin);
+            } else {
+                addToHistory(false, 0);
+            }
+            
+            // Continue auto spin if enabled
+            if (autoSpin && balance >= currentBet) {
+                autoSpinInterval = setTimeout(spin, 1000);
+            }
+        }
+        
+        // Add game result to history
+        function addToHistory(isWin, amount) {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString();
+            
+            const historyItem = document.createElement('div');
+            historyItem.className = `history-item p-2 rounded ${isWin ? 'win-item' : 'loss-item'}`;
+            
+            historyItem.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <span>${timeString}</span>
+                    <span class="font-bold ${isWin ? 'text-green-400' : 'text-red-400'}">
+                        ${isWin ? '+' + amount : '-' + currentBet}
+                    </span>
+                </div>
+                <div class="text-xs text-gray-400">
+                    ${isWin ? 'Виграш' : 'Програш'} • Ставка: ${currentBet}
+                </div>
+            `;
+            
+            gameHistory.insertBefore(historyItem, gameHistory.firstChild);
+            
+            // Keep only last 10 items
+            if (gameHistory.children.length > 10) {
+                gameHistory.removeChild(gameHistory.lastChild);
+            }
+            
+            // Save to localStorage
+            localStorage.setItem('gameHistory', gameHistory.innerHTML);
+        }
+        
+        // Start deposit cooldown
+        function startDepositCooldown(duration) {
+            depositCooldown = true;
+            depositCooldownEnd = Date.now() + duration;
+            localStorage.setItem('depositCooldownEnd', depositCooldownEnd.toString());
+            
+            sellShedBtn.disabled = true;
+            depositTimer.classList.remove('hidden');
+            
+            // Update timer every second
+            const timer = setInterval(() => {
+                const remaining = Math.max(0, depositCooldownEnd - Date.now());
+                
+                if (remaining <= 0) {
+                    clearInterval(timer);
+                    depositCooldown = false;
+                    sellShedBtn.disabled = false;
+                    depositTimer.classList.add('hidden');
+                    localStorage.removeItem('depositCooldownEnd');
+                    return;
+                }
+                
+                const minutes = Math.floor(remaining / 60000);
+                const seconds = Math.floor((remaining % 60000) / 1000);
+                timerDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+        
+        // Show confirmation modal
+        function showConfirm(title, message, callback) {
+            confirmTitle.textContent = title;
+            confirmMessage.textContent = message;
+            confirmModal.classList.remove('hidden');
+            
+            const handleConfirm = () => {
+                confirmModal.classList.add('hidden');
+                callback();
+                confirmAction.removeEventListener('click', handleConfirm);
+            };
+            
+            confirmAction.addEventListener('click', handleConfirm);
+        }
+        
+        // Event Listeners
+        spinBtn.addEventListener('click', spin);
+        
+        autoSpinBtn.addEventListener('click', () => {
+            playSound(clickSound);
+            autoSpin = !autoSpin;
+            
+            if (autoSpin) {
+                autoSpinBtn.classList.add('bg-yellow-600');
+                autoSpinBtn.innerHTML = '<i class="fas fa-stop mr-2"></i> Стоп';
+                spin();
+            } else {
+                autoSpinBtn.classList.remove('bg-yellow-600');
+                autoSpinBtn.innerHTML = '<i class="fas fa-redo mr-2"></i> Автоспін';
+                clearTimeout(autoSpinInterval);
+            }
+        });
+        
+        maxBetBtn.addEventListener('click', () => {
+            playSound(clickSound);
+            currentBet = Math.min(1000, balance);
+            updateBetDisplay();
+        });
+        
+        increaseBet.addEventListener('click', () => {
+            playSound(clickSound);
+            currentBet = Math.min(currentBet + 10, 1000, balance);
+            updateBetDisplay();
+        });
+        
+        decreaseBet.addEventListener('click', () => {
+            playSound(clickSound);
+            currentBet = Math.max(10, currentBet - 10);
+            updateBetDisplay();
+        });
+        
+        betAmounts.forEach(btn => {
+            btn.addEventListener('click', () => {
+                playSound(clickSound);
+                currentBet = parseInt(btn.dataset.amount);
+                updateBetDisplay();
+            });
+        });
+        
+        depositBtn.addEventListener('click', () => {
+            playSound(clickSound);
+            depositModal.classList.remove('hidden');
+        });
+        
+        withdrawBtn.addEventListener('click', () => {
+            playSound(clickSound);
+            withdrawModal.classList.remove('hidden');
+        });
+        
+        closeDepositModal.addEventListener('click', () => {
+            playSound(clickSound);
+            depositModal.classList.add('hidden');
+        });
+        
+        closeWithdrawModal.addEventListener('click', () => {
+            playSound(clickSound);
+            withdrawModal.classList.add('hidden');
+        });
+        
+        sellShedBtn.addEventListener('click', () => {
+            playSound(clickSound);
+            
+            if (depositCooldown) return;
+            
+            balance += 1000;
+            updateBalance();
+            startDepositCooldown(10 * 60 * 1000); // 10 minutes
+            
+            // Add to history
+            const historyItem = document.createElement('div');
+            historyItem.className = 'history-item p-2 rounded border-l-blue-400';
+            historyItem.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <span>${new Date().toLocaleTimeString()}</span>
+                    <span class="font-bold text-blue-400">+1000</span>
+                </div>
+                <div class="text-xs text-gray-400">
+                    Поповнення • Продаж сараю
+                </div>
+            `;
+            
+            gameHistory.insertBefore(historyItem, gameHistory.firstChild);
+            localStorage.setItem('gameHistory', gameHistory.innerHTML);
+        });
+        
+        deputyTransferBtn.addEventListener('click', () => {
+            playSound(clickSound);
+            const amount = parseInt(withdrawAmount.value);
+            
+            if (isNaN(amount) || amount < 100 || amount > balance) {
+                showConfirm('Помилка', 'Будь ласка, введіть коректну суму (мінімум 100 фішок)', () => {});
+                return;
+            }
+            
+            showConfirm('Підтвердження', `Ви впевнені, що хочете переслати ${amount} фішок депутату?`, () => {
+                balance -= amount;
+                updateBalance();
+                withdrawModal.classList.add('hidden');
+                
+                // Add to history
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item p-2 rounded border-l-purple-400';
+                historyItem.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span>${new Date().toLocaleTimeString()}</span>
+                        <span class="font-bold text-purple-400">-${amount}</span>
+                    </div>
+                    <div class="text-xs text-gray-400">
+                        Виведення • Депутату
+                    </div>
+                `;
+                
+                gameHistory.insertBefore(historyItem, gameHistory.firstChild);
+                localStorage.setItem('gameHistory', gameHistory.innerHTML);
+            });
+        });
+        
+        lilaDonationBtn.addEventListener('click', () => {
+            playSound(clickSound);
+            const amount = parseInt(withdrawAmount.value);
+            
+            if (isNaN(amount) || amount < 100 || amount > balance) {
+                showConfirm('Помилка', 'Будь ласка, введіть коректну суму (мінімум 100 фішок)', () => {});
+                return;
+            }
+            
+            showConfirm('Підтвердження', `Ви впевнені, що хочете пожертвувати ${amount} фішок на слуховий апарат Лілі?`, () => {
+                balance -= amount;
+                updateBalance();
+                withdrawModal.classList.add('hidden');
+                
+                // Add to history
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item p-2 rounded border-l-pink-400';
+                historyItem.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span>${new Date().toLocaleTimeString()}</span>
+                        <span class="font-bold text-pink-400">-${amount}</span>
+                    </div>
+                    <div class="text-xs text-gray-400">
+                        Виведення • Лілі
+                    </div>
+                `;
+                
+                gameHistory.insertBefore(historyItem, gameHistory.firstChild);
+                localStorage.setItem('gameHistory', gameHistory.innerHTML);
+            });
+        });
+        
+        rulesBtn.addEventListener('click', () => {
+            playSound(clickSound);
+            rulesModal.classList.remove('hidden');
+        });
+        
+        closeRulesModal.addEventListener('click', () => {
+            playSound(clickSound);
+            rulesModal.classList.add('hidden');
+        });
+        
+        cancelConfirm.addEventListener('click', () => {
+            playSound(clickSound);
+            confirmModal.classList.add('hidden');
+        });
+        
+        closeConfirmModal.addEventListener('click', () => {
+            playSound(clickSound);
+            confirmModal.classList.add('hidden');
+        });
+        
+        soundToggle.addEventListener('click', () => {
+            soundEnabled = !soundEnabled;
+            soundToggle.innerHTML = soundEnabled 
+                ? '<i class="fas fa-volume-up"></i>' 
+                : '<i class="fas fa-volume-mute"></i>';
+            playSound(clickSound);
+        });
+        
+        // Initialize the game when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initGame);
+    </script>
+<p style="border-radius: 8px; text-align: center; font-size: 12px; color: #fff; margin-top: 16px;position: fixed; left: 8px; bottom: 8px; z-index: 10; background: rgba(0, 0, 0, 0.8); padding: 4px 8px;">Made with <img src="https://enzostvs-deepsite.hf.space/logo.svg" alt="DeepSite Logo" style="width: 16px; height: 16px; vertical-align: middle;display:inline-block;margin-right:3px;filter:brightness(0) invert(1);"><a href="https://enzostvs-deepsite.hf.space" style="color: #fff;text-decoration: underline;" target="_blank" >DeepSite</a> - 🧬 <a href="https://enzostvs-deepsite.hf.space?remix=bascaf/kazino" style="color: #fff;text-decoration: underline;" target="_blank" >Remix</a></p></body>
+</html>
